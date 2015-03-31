@@ -1,0 +1,22 @@
+{
+  "name": "jsfxs",
+  "version": "0.0.1",
+  "homepage": "https://github.com/levjj/jsfxs",
+  "authors": "",
+  "description": "Effect system for JavaScript",
+  "moduleType": [
+    "globals"
+  ],
+  "license": "ISC",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "codemirror": "~4.11.0"
+  }
+}

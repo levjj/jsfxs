@@ -1,0 +1,18 @@
+body {
+  margin: 2em;
+  background-color: #eee;
+  font-family: 'sans';
+}
+
+.col .panel-body {
+  min-height: 260px;
+}
+
+.CodeMirror {
+  height: auto;
+}
+
+.panel-title button {
+  margin-top: -1ex;
+  color: #fff;
+}
