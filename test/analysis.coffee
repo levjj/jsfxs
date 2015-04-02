@@ -1,25 +1,42 @@
 chai = require 'chai'
-analysis = require '../src/analysis'
+Analyzer = require '../src/analyzer'
 _ = require 'lodash'
 
 chai.should()
 expect = chai.expect
 
-describe 'funcdefs', ->
+describe 'Analyzer', ->
 
-  it 'should list function definitions', ->
+  a = new Analyzer()
+
+  afterEach -> a = new Analyzer()
+
+  it 'should work fine for tiny examples', (done) ->
     src = 'var f = function() { return 23; }'
-    res = analysis.funcdefs src
-    res.should.be.an 'array'
-    res.length.should.eql 2
-    _.assign({},res[1]).should.eql
-      url: '<unknown>'
-      start_line: 1
-      start_offset: 8
-      end_line: 1
-      end_offset: 33
+    a.validate src, (res) ->
+      res.should.be.true
+      done()
 
-  it 'should list inner function definitions', ->
-    src = 'var f = function() { return function() { }; }'
-    res = analysis.funcdefs src
-    res.length.should.eql 3
+  it 'should use an SMT solver', (done) ->
+    a.nodes = ['n1', 'n2', 'n3']
+    a.funcs = ['f1']
+    a.objs = ['o1']
+    a.objConstraints = n2: ['o1']
+    a.funcConstraints = n3: ['f1']
+    a.flowConstraints =
+      n1: ['n2']
+      n2: ['n3']
+    a.solve (res) ->
+      res.should.be.true
+      done()
+
+describe 'Normalizer', ->
+
+  a = new Analyzer()
+
+  it 'should hoist variable declarations', ->
+    src = 'function f(a) { a = x + 2; var x; return a; }'
+    a.parse src
+    a.normalize()
+    code = a.codegen()
+    code.indexOf('var').should.be.below code.indexOf('x')
