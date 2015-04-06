@@ -68,11 +68,11 @@ module.exports = (grunt) ->
         cyclomatic_complexity: level: 'warn'
         empty_constructor_needs_parens: level: 'error'
         line_endings: level: 'error'
-        no_empty_functions: level: 'error'
+        no_empty_functions: level: 'warn'
         no_empty_param_list: level: 'error'
         no_interpolation_in_single_quotes: level: 'error'
         no_stand_alone_at: level: 'error'
-        no_unnecessary_double_quotes: level: 'warn'
+        no_unnecessary_double_quotes: level: 'error'
         no_unnecessary_fat_arrows: level: 'error'
         space_operators: level: 'error'
       gruntfile:

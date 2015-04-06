@@ -27,3 +27,4 @@ build
 bower_components
 dist
 .tmp
+./tmp.smt

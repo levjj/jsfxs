@@ -7,15 +7,18 @@ expect = chai.expect
 
 describe 'Analyzer', ->
 
-  a = new Analyzer()
-
-  afterEach -> a = new Analyzer()
-
-  it 'should work fine for tiny examples', (done) ->
-    src = 'var f = function() { return 23; }'
-    a.validate src, (res) ->
+  validates = (src, done) ->
+    a = new Analyzer()
+    a.run src, (res) ->
       res.should.be.true
       done()
+
+  it.only 'should work for functions', (done) ->
+    validates '(function(i) {})(1)', done
+    # validates 'var f = function() { return 23; }', done
+
+  it 'should work for objects', (done) ->
+    validates 'a = 1', done
 
   it 'should use an SMT solver', (done) ->
     a.nodes = ['n1', 'n2', 'n3']
@@ -35,7 +38,7 @@ describe 'Normalizer', ->
   a = new Analyzer()
 
   it 'should hoist variable declarations', ->
-    src = 'function f(a) { a = x + 2; var x; return a; }'
+    src = 'function f(x) { x = x + 2; return x; }'
     a.parse src
     a.normalize()
     code = a.codegen()

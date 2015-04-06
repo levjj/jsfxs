@@ -1,0 +1,20 @@
+DONE:
+- Parse JavaScript
+- Normalize with JS_WALA
+- Integrate CVC4 constraint system
+- Visitor for traversing JS_WALA statements
+
+TODO:
+- Generate constraints for set-based analysis
+  - Functions, variables
+  - Objects with computed properties
+  - Receivers (+global this)
+  - Arrays
+- Create points-to/call graph
+- Add effect system on top of call graph
+
+FUTURE:
+- "arguments" meta-variable
+- Add support for getters/setters
+- Add data flow constraints from throw to catch
+- Add support for prototypical inheritance
