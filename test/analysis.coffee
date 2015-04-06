@@ -24,11 +24,19 @@ describe 'Analyzer', ->
       a()
     validates "(#{f})()", done
 
-  it.only 'should work for objects', (done) ->
+  it 'should work for objects', (done) ->
     f = ->
       a = c: 1
       b = a
       b.c = a
+    validates "(#{f})()", done
+
+  it.only 'should respect receivers', (done) ->
+    f = ->
+      o = {}
+      Box = (@s) ->
+      b = new Box o
+      b.s
     validates "(#{f})()", done
 
 describe 'Normalizer', ->

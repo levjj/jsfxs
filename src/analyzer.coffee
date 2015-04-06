@@ -23,9 +23,9 @@ class Prop extends Node
   constructor: (@oidx, @sidx) ->
   toString: -> "(Prop O#{@oidx} S#{@sidx})"
 
-class Str extends Node
-  constructor: (@sidx) ->
-  toString: -> "(Str S#{@sidx})"
+class This extends Node
+  constructor: (@fidx) ->
+  toString: -> "(This F#{@fidx})"
 
 class Constraint
 
@@ -56,9 +56,16 @@ class FlowSet extends FlowConstraint
   constructor: (from, to, @propidx) -> super from, to
   toString: -> "(flow-set #{@from} #{@to} S#{@propidx})"
 
-class Assigned extends Constraint
-  constructor: (@target)
-  toString: -> "(assigned #{@target})"
+class FlowResConstructor extends FlowConstraint
+  toString: -> "(flow-res-cons #{@from} #{@to})"
+
+class FlowThis extends Constraint
+  constructor: (@obj, @propidx) ->
+  toString: -> "(flow-this #{@obj} S#{@propidx})"
+
+class ProtoConstraint extends Constraint
+  constructor: (@fidx, @oidx) ->
+  toString: -> "(= (proto F#{@fidx}) O#{@oidx})"
 
 class Analyzer extends Visitor
   run: (src,cb) ->
@@ -95,6 +102,12 @@ class Analyzer extends Visitor
   flowSet: (from, obj, prop) ->
     @constraints.push new FlowSet from, obj, @prop(prop)
 
+  flowResConstructor: (from, to) ->
+    @constraints.push new FlowResConstructor from, to
+
+  flowThis: (obj, prop) ->
+    @constraints.push new FlowThis obj, @prop(prop)
+
   hasfunc: (x, func) ->
     @constraints.push new FunctionConstraint x, func
     @assigned x
@@ -123,10 +136,10 @@ class Analyzer extends Visitor
 
   # Id, Function
   visitFunction: (x, func) ->
-    @funcs++
-    # @objs++  -- TODO add support for new
     scope = {}
-    scope['#f'] = @funcs
+    @funcs++
+    @hasobj (new This @funcs), ++@objs
+    @constraints.push new ProtoConstraint @funcs, @objs
     @args = Math.max @args, func.params.length
     for param in func.params
       @vars++
@@ -150,10 +163,17 @@ class Analyzer extends Visitor
       @assigned (@var x)
 
   # Id
-  visitThis: (x) -> throw new Error 'not supported'
+  visitThis: (x) ->
+    if @funcs
+      @flow (new This @funcs), (@var x)
+    else
+      @hasobj (@var x), 1
 
   # Id, [Id]
-  visitArray: (x, arr) -> throw new Error 'not supported'
+  visitArray: (x, arr) ->
+    @objs++
+    @flow (@var v), (new Prop @objs, 'S0') for v in arr
+    @hasobj (@var x), @objs
 
   # Id, {Id: Id }
   visitObjectLiteral: (x, obj) ->
@@ -197,14 +217,21 @@ class Analyzer extends Visitor
     @flowRes (@var f), (@var x)
 
   # Id, Id, Id, [Id]
-  visitMethodCall: (x, o, f, args) -> throw new Error 'not supported'
+  visitMethodCall: (x, o, f, args) ->
+    for arg,i in args
+      @flowArg (@var arg), (@var f), i + 1
+    @flowThis (@var o), (@var f)
+    @flowRes (@var f), (@var x)
 
   # Id, Id, [Id]
-  visitConstructorCall: (x, f, args) -> throw new Error 'not supported'
+  visitConstructorCall: (x, f, args) ->
+    for arg,i in args
+      @flowArg (@var arg), (@var f), i + 1
+    @flowResConstructor (@var f), (@var x)
 
   # Id?
   visitReturn: (x) ->
-    @flow (@var x), new Res _.last(@scopes)['#f'] if x
+    @flow (@var x), new Res @funcs if x
 
   # Id
   visitBreak: (l) -> # nothing to do

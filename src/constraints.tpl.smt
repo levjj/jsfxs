@@ -10,6 +10,7 @@
 (declare-datatypes () ((Node
                          (Var (varname Var))
                          (Res (resf Func))
+                         (This (thisf Func))
                          (Arg (argf Func) (argi Arg))
                          (Prop (propobj Obj) (propname Str)))))
 
@@ -19,8 +20,8 @@
 ; n = function f() { ... }
 (declare-fun hasfunc (Node Func) Bool)
 
-; x = * (not literal string)
-(declare-fun assigned (Node) Bool)
+; prototypes
+(declare-fun proto (Func) Obj)
 
 ; to = from
 (define-fun flow ((from Node) (to Node)) Bool
@@ -33,6 +34,12 @@
   (forall ((f Func))
     (=> (hasfunc fun f)
         (flow (Res f) to))))
+
+; to = new fun()
+(define-fun flow-res-cons ((fun Node) (to Node)) Bool
+  (forall ((f Func))
+    (=> (hasfunc fun f)
+        (hasobj to (proto f)))))
 
 ; _ = fun( ... a_i ... )
 (define-fun flow-arg ((from Node) (fun Node) (arg Arg)) Bool
@@ -54,6 +61,18 @@
              (forall ((p Str)) (flow from (Prop o p)))
              (flow from (Prop o prop))))))
 
+; _ = obj.prop()
+(define-fun flow-this ((obj Node) (prop Str)) Bool
+  (forall ((o Obj) (f Func))
+    (=> (hasobj obj o)
+        (ite (= prop S0)
+             (forall ((p Str))
+               (=> (hasfunc (Prop o p) f)
+                   (hasobj (This f) o)))
+             (=> (hasfunc (Prop o prop) f)
+                 (hasobj (This f) o))))))
+
+; _ = obj[*]
 (assert
   (forall ((obj Obj) (p Str))
     (flow (Prop obj p) (Prop obj S0))))
