@@ -211,7 +211,7 @@ class Analyzer extends Visitor
         props: @props || 1
         args: @args || 1
         constraints: @constraints
-      child = exec 'cvc4 -L smt2', (err, stdout, stderr) =>
+      child = exec 'z3/build/z3 -smt2 -in', (err, stdout, stderr) =>
         throw Error('SMT failed') unless /^(un)?sat/.test stdout
         @result = /^sat/.test stdout
         cb @result

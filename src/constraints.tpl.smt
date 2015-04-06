@@ -1,4 +1,4 @@
-(set-logic AUFDTLIAFS)
+(set-logic UFDT)
 (set-option :produce-models true)
 
 (declare-datatypes () ((Func <% for(var i = 1; i <= funcs; i++) { %> (F<%=i%>) <% } %>)))
@@ -13,47 +13,39 @@
                          (Arg (argf Func) (argi Arg))
                          (Prop (propobj Obj) (propname Prop)))))
 
-(define-sort FuncSet () (Set Func))
-(define-sort ObjSet () (Set Obj))
-(declare-datatypes () ((Value (Val (funcs FuncSet) (objs ObjSet)))))
-
-(declare-const sol (Array Node Value))
-
 ; n = { ... }
-(define-fun hasobj ((n Node) (o Obj)) Bool
-  (member o (objs (select sol n))))
+(declare-fun hasobj (Node Obj) Bool)
 
 ; n = function f() { ... }
-(define-fun hasfunc ((n Node) (f Func)) Bool
-  (member f (funcs (select sol n))))
+(declare-fun hasfunc (Node Func) Bool)
 
 ; to = from
 (define-fun flow ((from Node) (to Node)) Bool
-  (and (subset (funcs (select sol from)) (funcs (select sol to)))
-       (subset (objs (select sol from)) (objs (select sol to)))))
+  (forall ((func Func))
+    (=> (hasfunc from func) (hasfunc to func))))
 
 ; to = fun()
 (define-fun flow-res ((fun Node) (to Node)) Bool
   (forall ((f Func))
-      (=> (member f (funcs (select sol fun)))
+      (=> (hasfunc fun f)
           (flow (Res f) to))))
 
 ; _ = fun( ... a_i ... )
 (define-fun flow-arg ((from Node) (fun Node) (arg Arg)) Bool
   (forall ((f Func))
-      (=> (member f (funcs (select sol fun)))
+      (=> (hasfunc fun f)
           (flow from (Arg f arg)))))
 
 ; to = obj.p
 (define-fun flow-get ((obj Node) (prop Prop) (to Node)) Bool
   (forall ((o Obj))
-      (=> (member o (objs (select sol obj)))
+      (=> (hasobj obj o)
           (flow (Prop o prop) to))))
 
 ; obj.p = from
 (define-fun flow-set ((from Node) (obj Node) (prop Prop)) Bool
   (forall ((o Obj))
-      (=> (member o (objs (select sol obj)))
+      (=> (hasobj obj o)
           (flow from (Prop o prop)))))
 
 <% _.each(constraints, function(c) { %>

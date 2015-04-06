@@ -1,12 +1,12 @@
 DONE:
-- Parse JavaScript
-- Normalize with JS_WALA
-- Integrate CVC4 constraint system
-- Visitor for traversing JS_WALA statements
++ Parse JavaScript
++ Normalize with JS_WALA
++ Integrate CVC4 constraint system
++ Visitor for traversing JS_WALA statements
 
 TODO:
 - Generate constraints for set-based analysis
-  - Functions, variables
+  + Functions, variables
   - Objects with computed properties
   - Receivers (+global this)
   - Arrays
