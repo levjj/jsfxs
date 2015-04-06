@@ -20,8 +20,12 @@ class Arg extends Node
   toString: -> "(Arg F#{@fidx} A#{@aidx})"
 
 class Prop extends Node
-  constructor: (@oidx, @pidx) ->
-  toString: -> "(Prop O#{@oidx} P#{@pidx})"
+  constructor: (@oidx, @sidx) ->
+  toString: -> "(Prop O#{@oidx} S#{@sidx})"
+
+class Str extends Node
+  constructor: (@sidx) ->
+  toString: -> "(Str S#{@sidx})"
 
 class Constraint
 
@@ -46,27 +50,58 @@ class FlowArg extends FlowConstraint
 
 class FlowGet extends FlowConstraint
   constructor: (from, @propidx, to) -> super from, to
-  toString: -> "(flow-get #{@from} P#{@propidx} #{@to})"
+  toString: -> "(flow-get #{@from} S#{@propidx} #{@to})"
 
 class FlowSet extends FlowConstraint
-  constructor: (from, @propidx, to) -> super from, to
-  toString: -> "(flow-get #{@from} P#{@propidx} #{@to})"
+  constructor: (from, to, @propidx) -> super from, to
+  toString: -> "(flow-set #{@from} #{@to} S#{@propidx})"
+
+class Assigned extends Constraint
+  constructor: (@target)
+  toString: -> "(assigned #{@target})"
 
 class Analyzer extends Visitor
   run: (src,cb) ->
     @funcs = 0
     @objs = 0
     @vars = 0
-    @props = 0
+    @strs = 0
     @args = 0
     @constraints = []
     @scopes = [{}]
-    @propNames = {}
+    @strNames = {}
+    @simpleProps = {}
     super src
     @solve cb
 
+  assigned: (to) ->
+    @simpleProps[to] = false
+
   flow: (from, to) ->
     @constraints.push new FlowConstraint from, to
+    @assigned to
+
+  flowRes: (from, to) ->
+    @constraints.push new FlowRes from, to
+    @assigned to
+
+  flowArg: (arg, func, i) ->
+    @constraints.push new FlowArg arg, func, i
+
+  flowGet: (obj, prop, to) ->
+    @constraints.push new FlowGet obj, @prop(prop), to
+    @assigned to
+
+  flowSet: (from, obj, prop) ->
+    @constraints.push new FlowSet from, obj, @prop(prop)
+
+  hasfunc: (x, func) ->
+    @constraints.push new FunctionConstraint x, func
+    @assigned x
+
+  hasobj: (x, obj) ->
+    @constraints.push new ObjectConstraint x, obj
+    @assigned x
 
   var: (varname) ->
     lookup = (scopes) ->
@@ -75,15 +110,21 @@ class Analyzer extends Visitor
       lookup _.initial scopes
     lookup @scopes
 
-  prop: (objidx, propname) ->
-    unless @propNames.hasOwnProperty propname
-      @propNames[propname] = ++@props
-    Obj objidx, @propNames[propname]
+  str: (str) ->
+    unless @strNames.hasOwnProperty str
+      @strNames[str] = ++@strs
+    @strNames[str]
+
+  prop: (p) ->
+    if @simpleProps[p]
+      @simpleProps[p]
+    else
+      'S0'
 
   # Id, Function
   visitFunction: (x, func) ->
     @funcs++
-    #@objs++  -- TODO add support for new
+    # @objs++  -- TODO add support for new
     scope = {}
     scope['#f'] = @funcs
     @args = Math.max @args, func.params.length
@@ -93,7 +134,7 @@ class Analyzer extends Visitor
     @scopes.push scope
     @visit func.body
     @scopes.pop()
-    @constraints.push new FunctionConstraint((@var x), @funcs)
+    @hasfunc (@var x), @funcs
 
   # Id
   visitVarDeclaration: (varname) ->
@@ -103,6 +144,10 @@ class Analyzer extends Visitor
 
   # Id, Literal
   visitLiteral: (x, lit) ->
+    if typeof lit is 'string' and not @simpleProps.hasOwnProperty(@var x)
+      @simpleProps[@var x] = @str lit
+    else
+      @assigned (@var x)
 
   # Id
   visitThis: (x) -> throw new Error 'not supported'
@@ -112,11 +157,9 @@ class Analyzer extends Visitor
 
   # Id, {Id: Id }
   visitObjectLiteral: (x, obj) ->
-    return
-    throw new Error 'not supported'
     @objs++
-    @flow (@var v) (@prop @objs, k) for k, v of obj
-    @constraints.push new ObjectConstraint((@var x), @objs)
+    @flow (@var v), (new Prop @objs, (@str k)) for k, v of obj
+    @hasobj (@var x), @objs
 
   # Id, Id
   visitVariable: (x, y) ->
@@ -124,32 +167,34 @@ class Analyzer extends Visitor
 
   # Id, Id, Id
   visitGet: (x, o, f) ->
-    throw new Error 'not supported'
-    # ------------
-    @flow (@prop o, f), (@var x)
+    @flowGet (@var o), (@var f), (@var x)
 
   # Id, Id, Id
-  visitSet: (o, f, y) -> throw new Error 'not supported'
+  visitSet: (o, f, y) ->
+    @flowSet (@var y), (@var o), (@var f)
 
   # Id, Id
   visitDeleteGlobal: (x, y) -> throw new Error 'not supported'
 
   # Id, Id, Id
-  visitDelete: (x, o, f) -> throw new Error 'not supported'
+  visitDelete: (x, o, f) ->
+    @visitGet x, o, f
 
   # Id, Op, Id
-  visitUnOp: (x, op, a) -> # nothing to do
+  visitUnOp: (x, op, a) ->
+    @assigned x
 
   # Id, Id, Op, Id
   visitBinOp: (x, a, op, b) ->
     if op == '||' or op == '&&'
       @flow (@var b), (@var x)
+    @assigned x
 
   # Id, Id, [Id]
   visitCall: (x, f, args) ->
     for arg,i in args
-      @constraints.push new FlowArg (@var arg), (@var f), i + 1
-    @constraints.push new FlowRes (@var f), (@var x)
+      @flowArg (@var arg), (@var f), i + 1
+    @flowRes (@var f), (@var x)
 
   # Id, Id, Id, [Id]
   visitMethodCall: (x, o, f, args) -> throw new Error 'not supported'
@@ -208,7 +253,7 @@ class Analyzer extends Visitor
         funcs: @funcs || 1
         objs: @objs || 1
         vars: @vars || 1
-        props: @props || 1
+        strs: @strs || 1
         args: @args || 1
         constraints: @constraints
       child = exec 'z3/build/z3 -smt2 -in', (err, stdout, stderr) =>

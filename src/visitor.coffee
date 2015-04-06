@@ -210,7 +210,7 @@ class Visitor
         when 'Identifier'
           @visitVariable left, right.name
         when 'Literal'
-          @visitLiteral left, right
+          @visitLiteral left, right.value
         else
           throw new Error 'Unknown AST node in expression'
     else

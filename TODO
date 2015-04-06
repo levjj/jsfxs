@@ -7,8 +7,8 @@ DONE:
 TODO:
 - Generate constraints for set-based analysis
   + Functions, variables
-  - Objects with computed properties
-  - Receivers (+global this)
+  + Objects with computed properties
+  - Constructors, receivers, global this
   - Arrays
 - Create points-to/call graph
 - Add effect system on top of call graph

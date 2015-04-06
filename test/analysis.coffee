@@ -24,8 +24,12 @@ describe 'Analyzer', ->
       a()
     validates "(#{f})()", done
 
-  it 'should work for objects', (done) ->
-    validates 'a = 1', done
+  it.only 'should work for objects', (done) ->
+    f = ->
+      a = c: 1
+      b = a
+      b.c = a
+    validates "(#{f})()", done
 
 describe 'Normalizer', ->
 
