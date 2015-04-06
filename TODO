@@ -3,15 +3,17 @@ DONE:
 + Normalize with JS_WALA
 + Integrate CVC4 constraint system
 + Visitor for traversing JS_WALA statements
-
-TODO:
-- Generate constraints for set-based analysis
++ Generate constraints for set-based analysis
   + Functions, variables
   + Objects with computed properties
   + Constructors, receivers, global this
   + Arrays
-- Create points-to/call graph
-- Add effect system on top of call graph
++ Create points-to/call graph
++ Add effect system on top of call graph
+
+TODO:
+- more tests for receiver/this
+- more tests for S0 property
 
 FUTURE:
 - meta-programming:

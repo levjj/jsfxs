@@ -9,7 +9,6 @@ class Visitor
 
   normalize: ->
     @ast = normalizer.normalize @ast,
-      reference_errors: true
       unify_ret: true
 
   codegen: ->

@@ -75,9 +75,10 @@ class Analyzer extends Visitor
     @strs = 0
     @args = 0
     @constraints = []
-    @scopes = [{}]
+    @scopes = [{'#f': 0}]
     @strNames = {}
     @simpleProps = {}
+    @hasobj (new This 0), 1
     super src
     @solve cb
 
@@ -137,17 +138,18 @@ class Analyzer extends Visitor
   # Id, Function
   visitFunction: (x, func) ->
     scope = {}
-    @funcs++
+    scope['#f'] = ++@funcs
     @hasobj (new This @funcs), ++@objs
     @constraints.push new ProtoConstraint @funcs, @objs
     @args = Math.max @args, func.params.length
-    for param in func.params
+    for param,i in func.params
       @vars++
       scope[param.name] = @vars
+      @flow (new Arg @funcs, i + 1), new Var @vars
     @scopes.push scope
     @visit func.body
     @scopes.pop()
-    @hasfunc (@var x), @funcs
+    @hasfunc (@var x), scope['#f']
 
   # Id
   visitVarDeclaration: (varname) ->
@@ -164,10 +166,7 @@ class Analyzer extends Visitor
 
   # Id
   visitThis: (x) ->
-    if @funcs
-      @flow (new This @funcs), (@var x)
-    else
-      @hasobj (@var x), 1
+    @flow (new This _.last(@scopes)['#f']), (@var x)
 
   # Id, [Id]
   visitArray: (x, arr) ->
@@ -231,7 +230,7 @@ class Analyzer extends Visitor
 
   # Id?
   visitReturn: (x) ->
-    @flow (@var x), new Res @funcs if x
+    @flow (@var x), new Res _.last(@scopes)['#f'] if x
 
   # Id
   visitBreak: (l) -> # nothing to do
@@ -272,22 +271,26 @@ class Analyzer extends Visitor
     @visit s for s in block
     @visit s for s in finallyBlock
 
+  templateData: ->
+    funcs: @funcs || 1
+    objs: @objs || 1
+    vars: @vars || 1
+    strs: @strs || 1
+    args: @args || 1
+    fxs: 1
+    constraints: @constraints
+
   solve: (cb) ->
     @result = []
     fs.readFile './src/constraints.tpl.smt', (err, tpl) =>
       throw err if err
-      smt = _(tpl).template
-        funcs: @funcs || 1
-        objs: @objs || 1
-        vars: @vars || 1
-        strs: @strs || 1
-        args: @args || 1
-        constraints: @constraints
+      smt = _(tpl).template @templateData()
       child = exec 'z3/build/z3 -smt2 -in', (err, stdout, stderr) =>
         throw Error('SMT failed') unless /^(un)?sat/.test stdout
         @result = /^sat/.test stdout
         cb @result
       fs.writeFileSync './tmp.smt', smt
+      fs.writeFileSync './tmp.js', @codegen()
       child.stdin.end smt
 
 if typeof window != 'undefined'
