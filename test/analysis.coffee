@@ -199,3 +199,21 @@ describe 'EffectSystemAnalyzer', ->
       obj[p] = alert
       startWorker -> obj.g()
 
+describe 'Effect macros', ->
+
+  it 'should fail with object aliases', (done) ->
+    src = '(function() {
+      var alert = function() fx[dom] { }
+      var startWorker = function (x fx[!dom]) { }
+      var obj = {f: function (i) { return i; } };
+      var box = function (x) {
+        return function() { return x; }
+      };
+      var b = box(obj);
+      startWorker(function() { b().f(); });
+      obj.f = alert;
+    })()'
+    a = new EffectSystemAnalyzer()
+    a.run src, (res) ->
+      res.should.be.false
+      done()

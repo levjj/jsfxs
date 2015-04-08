@@ -1,4 +1,6 @@
 _ = require 'lodash'
+sweet = require 'sweet.js'
+sweet.loadMacro './src/fxmacros'
 
 CallGraphAnalyzer = require './callgraph'
 
@@ -9,10 +11,16 @@ class EffectConstraint extends Constraint
   toString: -> "(effect F#{@infuncidx} FX#{@fxid})"
 
 class ContractConstraint extends Constraint
-  constructor: (@infuncidx, @argidx, @fxidx) ->
-  toString: -> "(contract F#{@infuncidx} A#{@argidx} FX#{@fxidx})"
+  constructor: (@node, @fxidx) ->
+  toString: -> "(contract #{@node} FX#{@fxidx})"
 
 class EffectSystemAnalyzer extends CallGraphAnalyzer
+
+  parse: (src) ->
+    @ast = sweet.compile "#{@macro}\n#{src}",
+      ast: true
+      readableNames: true
+
   run: (src,cb) ->
     @fxs = {}
     super src, cb
@@ -25,18 +33,18 @@ class EffectSystemAnalyzer extends CallGraphAnalyzer
   effect: (funcidx, fx) ->
     @constraints.push new EffectConstraint funcidx, (@fx fx)
 
-  contract: (funcidx, argidx, fx) ->
-    @constraints.push new ContractConstraint funcidx, argidx, (@fx fx)
+  contract: (node, fx) ->
+    @constraints.push new ContractConstraint node, (@fx fx)
 
   fxRegex: /^__@fx:(.+)$/
-  contractRegex: /^__@arg:([0-9]+):(.+)$/
+  contractRegex: /^__@var:([^:]+):(.+)$/
 
   visitLiteral: (x, lit) ->
     if typeof lit is 'string' and @fxRegex.test lit
-      @effect @funcs, lit.match(@fxRegex)[1]
+      @effect @funcs, fx for fx in lit.match(@fxRegex)[1].split ','
     else if typeof lit is 'string' and @contractRegex.test lit
-      [all, argidx, fx] = lit.match @contractRegex
-      @contract @funcs, +argidx, fx
+      [all, varname, fxs] = lit.match @contractRegex
+      @contract (@var varname), fx.substr(1) for fx in fxs.split ','
     else
       super x, lit
 

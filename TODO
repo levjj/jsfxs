@@ -12,10 +12,10 @@ DONE:
 + add effect system on top of call graph
 + more tests for receiver/this
 + more tests for S0 property
++ macros for desugaring JavaScript with effect contracts
 
 TODO:
 - editor integration
-- macros for desugaring JavaScript with effect contracts
 
 FUTURE:
 - meta-programming:
