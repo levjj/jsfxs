@@ -119,6 +119,7 @@ class Analyzer extends Visitor
 
   var: (varname) ->
     lookup = (scopes) ->
+      throw new Error "unknown id #{varname}" if scopes.length == 0
       if _.last(scopes).hasOwnProperty varname
         return new Var _.last(scopes)[varname]
       lookup _.initial scopes
@@ -133,7 +134,7 @@ class Analyzer extends Visitor
     if @simpleProps[p]
       @simpleProps[p]
     else
-      'S0'
+      0
 
   # Id, Function
   visitFunction: (x, func) ->
@@ -171,7 +172,7 @@ class Analyzer extends Visitor
   # Id, [Id]
   visitArray: (x, arr) ->
     @objs++
-    @flow (@var v), (new Prop @objs, 'S0') for v in arr
+    @flow (@var v), (new Prop @objs, 0) for v in arr
     @hasobj (@var x), @objs
 
   # Id, {Id: Id }

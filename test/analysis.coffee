@@ -65,99 +65,137 @@ describe 'CallGraphAnalyzer', ->
 
 describe 'EffectSystemAnalyzer', ->
 
-  it 'should work without contracts', (done) ->
-    f = ->
-      a = -> '__@fx:io'
-      b = -> b()
-      c = (x) -> '__@arg:1:io'
-      c b
+  shouldFail = (done,f) ->
+    a = new EffectSystemAnalyzer()
+    a.run "(#{f})()", (res) ->
+      res.should.be.false
+      done()
+
+  shouldSucceed = (done,f) ->
     a = new EffectSystemAnalyzer()
     a.run "(#{f})()", (res) ->
       res.should.be.true
       done()
 
-  it 'should fail with a direct call', (done) ->
-    f = ->
+  it 'should work without contracts', (done) ->
+    shouldSucceed done, ->
       a = -> '__@fx:io'
-      b = (x) -> '__@arg:1:io'
+      b = -> b()
+      c = (x) -> '__@var:x:!io'
+      c b
+
+  it 'should fail with a direct call', (done) ->
+    shouldFail done, ->
+      a = -> '__@fx:io'
+      b = (x) -> '__@var:x:!io'
       b a
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.false
-      done()
 
   it 'should fail with an indirect call', (done) ->
-    f = ->
+    shouldFail done, ->
       a = -> '__@fx:io'
       b = -> a()
-      c = (x) -> '__@arg:1:io'
+      c = (x) -> '__@var:x:!io'
       c b
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.false
-      done()
 
   it 'should work with objects', (done) ->
-    f = ->
+    shouldFail done, ->
       o = f: -> '__@fx:io'
       b = -> o.f()
-      c = (x) -> '__@arg:1:io'
+      c = (x) -> '__@var:x:!io'
       c b
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.false
-      done()
 
   it 'should work with closures', (done) ->
-    f = ->
+    shouldFail done, ->
       box = ->
         -> '__@fx:io'
       b = box()
-      c = (x) -> '__@arg:1:io'
+      c = (x) -> '__@var:x:!io'
       c b
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.false
-      done()
 
   it 'should fail with object updates', (done) ->
-    f = ->
+    shouldFail done, ->
       o = {}
       a = -> '__@fx:dom'
       b = -> o.f()
-      c = (x) -> '__@arg:1:dom'
+      c = (x) -> '__@var:x:!dom'
       c b
       o.f = a
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.false
-      done()
 
   it 'should work with object aliases', (done) ->
-    f = ->
+    shouldSucceed done, ->
       alert = -> '__@fx:dom'
-      startWorker = (x) -> '__@arg:1:dom'
+      startWorker = (x) -> '__@var:x:!dom'
       obj = f: (i) -> i
       box = (x) ->
         -> x
       b = box obj
       startWorker -> b().f()
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.true
-      done()
 
   it 'should fail with object aliases', (done) ->
-    f = ->
+    shouldFail done, ->
       alert = -> '__@fx:dom'
-      startWorker = (x) -> '__@arg:1:dom'
+      startWorker = (x) -> '__@var:x:!dom'
       obj = f: (i) -> i
       box = (x) ->
         -> x
       b = box obj
       startWorker -> b().f()
       obj.f = alert
-    a = new EffectSystemAnalyzer()
-    a.run "(#{f})()", (res) ->
-      res.should.be.false
-      done()
+
+  it 'should work with object receiver', (done) ->
+    shouldSucceed done, ->
+      alert = -> '__@fx:dom'
+      startWorker = (x) -> '__@var:x:!dom'
+      obj =
+        f: alert
+        g: -> @g()
+      startWorker -> obj.g()
+
+  it 'should fail with object receiver', (done) ->
+    shouldFail done, ->
+      alert = -> '__@fx:dom'
+      startWorker = (x) -> '__@var:x:!dom'
+      obj =
+        f: alert
+        g: -> @f()
+      startWorker -> obj.g()
+
+  it 'should work with computed object property get', (done) ->
+    shouldSucceed done, ->
+      alert = -> '__@fx:dom'
+      startWorker = (x) -> '__@var:x:!dom'
+      obj =
+        p: 'f'
+        g: -> this[@p]()
+      startWorker -> obj.g()
+
+  it 'should fail with computed object property get', (done) ->
+    shouldFail done, ->
+      alert = -> '__@fx:dom'
+      startWorker = (x) -> '__@var:x:!dom'
+      obj =
+        p: 'f'
+        f: alert
+        g: -> this[@p]()
+      startWorker -> obj.g()
+
+  it 'should work with computed object property set', (done) ->
+    shouldSucceed done, ->
+      alert = -> '__@fx:dom'
+      startWorker = (x) -> '__@var:x:!dom'
+      obj =
+        g: -> 23
+      p = 'g'
+      obj[p] = -> 'foo'
+      startWorker -> obj.g()
+
+  it 'should fail with computed object property set', (done) ->
+    shouldFail done, ->
+      alert = -> '__@fx:dom'
+      startWorker = (x) -> '__@var:x:!dom'
+      obj =
+        g: -> 23
+      p = 'g'
+      obj[p] = alert
+      startWorker -> obj.g()
+

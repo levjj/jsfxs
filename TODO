@@ -1,24 +1,26 @@
 DONE:
-+ Parse JavaScript
-+ Normalize with JS_WALA
-+ Integrate CVC4 constraint system
-+ Visitor for traversing JS_WALA statements
-+ Generate constraints for set-based analysis
-  + Functions, variables
-  + Objects with computed properties
-  + Constructors, receivers, global this
++ parse JavaScript
++ normalize with JS_WALA
++ integrate CVC4 constraint system
++ visitor for traversing JS_WALA statements
++ generate constraints for set-based analysis
+  + functions, variables
+  + objects with computed properties
+  + constructors, receivers, global this
   + Arrays
-+ Create points-to/call graph
-+ Add effect system on top of call graph
++ create points-to/call graph
++ add effect system on top of call graph
++ more tests for receiver/this
++ more tests for S0 property
 
 TODO:
-- more tests for receiver/this
-- more tests for S0 property
+- editor integration
+- macros for desugaring JavaScript with effect contracts
 
 FUTURE:
 - meta-programming:
   - "arguments"
   - call/apply
-- Add support for getters/setters
-- Add data flow constraints from throw to catch
-- Add support for prototypical inheritance
+- add support for getters/setters
+- add data flow constraints from throw to catch
+- add support for prototypical inheritance

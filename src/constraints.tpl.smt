@@ -104,9 +104,9 @@
     (=> (and (effect f2 fx) (call-graph f1 f2))
         (effect f1 fx))))
 
-(define-fun contract ((in Func) (argidx Arg) (fx Effect)) Bool
+(define-fun contract ((node Node) (fx Effect)) Bool
   (forall ((f Func))
-    (=> (hasfunc (Arg in argidx) f)
+    (=> (hasfunc node f)
         (not (effect f fx)))))
 
 <% _.each(constraints, function(c) { %>
