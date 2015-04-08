@@ -57,7 +57,6 @@ window.App =
       console.log $('#vimmode').is(':checked')
       textarea.setOption 'vimMode', $('#vimmode').is(':checked')
 
-
 update = ->
   code = textarea.getValue()
   $('#source .panel').removeClass 'panel-warning'
@@ -67,7 +66,10 @@ possiblyUpdate = _.debounce update, 2000
 
 analyze = ->
   $.post 'compile', code: code, (data) ->
-    if data.success
+    if data.parseError
+      $('#msg').html 'Parse error!'
+      $('#source .panel').addClass 'panel-danger'
+    else if data.success
       $('#msg').html 'All contracts satisfied.'
       $('#source .panel').addClass 'panel-success'
     else

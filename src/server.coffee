@@ -16,8 +16,11 @@ app.get '/', (req, res, next) ->
 
 app.post '/compile', (req, res) ->
   a = new EffectSystemAnalyzer()
-  a.run req.body.code, (result) ->
-    res.send success: result
+  try
+    a.run req.body.code, (result) ->
+      res.send success: result
+  catch
+    res.send parseError: true
 
 server = app.listen 3000, ->
   host = server.address().address
