@@ -52,14 +52,13 @@ module.exports = (grunt) ->
         options:
           reporter: 'spec'
 
-    connect:
-      server:
-        options:
-          livereload: true
-          port: 9009
-          open: true
-          hostname: '*'
-          keepalive: true
+    spawn:
+      dist:
+        directory: './build'
+        command: 'node'
+        commandArgs: ['server.js']
+        opts:
+          cwd: './build'
 
     coffeelint:
       options:
@@ -103,7 +102,7 @@ module.exports = (grunt) ->
         logConcurrentOutput: true
         limit: 5
       serve:
-        tasks: ['connect:server', 'watch']
+        tasks: ['spawn:dist', 'watch']
 
   # Run the tests
   grunt.registerTask 'test', (target) ->
@@ -125,7 +124,7 @@ module.exports = (grunt) ->
     'clean'
     'coffee']
 
-  grunt.registerTask 'deploy', [
+  grunt.registerTask 'dist', [
     'coffee'
     'useminPrepare'
     'concat:generated'

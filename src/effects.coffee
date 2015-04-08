@@ -1,6 +1,6 @@
 _ = require 'lodash'
 sweet = require 'sweet.js'
-sweet.loadMacro './src/fxmacros'
+sweet.loadMacro(__dirname + '/../src/fxmacros')
 
 CallGraphAnalyzer = require './callgraph'
 

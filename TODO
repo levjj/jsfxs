@@ -13,11 +13,10 @@ DONE:
 + more tests for receiver/this
 + more tests for S0 property
 + macros for desugaring JavaScript with effect contracts
++ editor integration
 
 TODO:
-- editor integration
-
-FUTURE:
+- highlighting unsat core
 - meta-programming:
   - "arguments"
   - call/apply

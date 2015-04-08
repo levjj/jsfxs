@@ -283,15 +283,13 @@ class Analyzer extends Visitor
 
   solve: (cb) ->
     @result = []
-    fs.readFile './src/constraints.tpl.smt', (err, tpl) =>
+    fs.readFile "#{__dirname}/../src/constraints.tpl.smt", (err, tpl) =>
       throw err if err
       smt = _(tpl).template @templateData()
-      child = exec 'z3/build/z3 -smt2 -in', (err, stdout, stderr) =>
+      child = exec "#{__dirname}/../z3/build/z3 -smt2 -in", (err, stdout) =>
         throw Error('SMT failed') unless /^(un)?sat/.test stdout
         @result = /^sat/.test stdout
         cb @result
-      fs.writeFileSync './tmp.smt', smt
-      fs.writeFileSync './tmp.js', @codegen()
       child.stdin.end smt
 
 if typeof window != 'undefined'
