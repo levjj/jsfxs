@@ -9,23 +9,23 @@ window.addEventListener 'beforeunload', (e) ->
   if diskOutdated
     e.returnValue = 'Are you sure you want to leave this page?'
 
-code = """
+code = '''
        var alert = function() fx[dom] {
            // alert has an effect on the dom
        }
        var startWorker = function(func fx[!dom]) {
-           // startWorker expects a function argument without dom effects
+           // startWorker expects a function without dom effects
        }
-       var obj = {f: function() { } }; // object with harmless function f
+       var obj = {f: function() { } };
        var box = function (x) {
-           return function() { return x; } // closure which holds on to 'x'
+           return function() { return x; }
        };
        var b = box(obj);
        startWorker(function() {
-           b().f(); // unboxing 'b' and calling the function in 'f'
+           b().f();
        });
-       obj.f = alert;  // <- causes a contract violation in the worker
-       """
+       obj.f = alert;  // this assignment causes a contract violation
+       '''
 
 window.App =
   init: ->
@@ -53,7 +53,7 @@ window.App =
       textarea.setOption 'vimMode', $('#vimmode').is(':checked')
 
 startUpdate = ->
-  $('#source .panel').removeClass 'panel-info'
+  $('#source .panel').removeClass 'panel-default'
   $('#source .panel').removeClass 'panel-danger'
   $('#source .panel').removeClass 'panel-success'
   $('#source .panel').addClass 'panel-warning'

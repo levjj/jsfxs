@@ -8,6 +8,10 @@ body {
   min-height: 420px;
 }
 
+.panel-heading {
+  padding-top: 2ex;
+}
+
 .CodeMirror {
   height: auto;
   line-height: 1.3;
