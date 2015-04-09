@@ -14,9 +14,10 @@ DONE:
 + more tests for S0 property
 + macros for desugaring JavaScript with effect contracts
 + editor integration
++ highlighting unsat core
 
 TODO:
-- highlighting unsat core
+- better highlighting of unsat core (source maps instead of regex)
 - meta-programming:
   - "arguments"
   - call/apply

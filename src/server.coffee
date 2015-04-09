@@ -18,7 +18,7 @@ app.post '/compile', (req, res) ->
   a = new EffectSystemAnalyzer()
   try
     a.run req.body.code, (result) ->
-      res.send success: result
+      res.send result
   catch
     res.send parseError: true
 

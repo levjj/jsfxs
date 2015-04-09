@@ -12,7 +12,7 @@ describe 'Analyzer', ->
   validates = (src, done) ->
     a = new Analyzer()
     a.run src, (res) ->
-      res.should.be.true
+      res.success.should.be.true
       done()
 
   it 'should work for functions', (done) ->
@@ -60,7 +60,7 @@ describe 'CallGraphAnalyzer', ->
       b = -> c()
     a = new CallGraphAnalyzer()
     a.run "(#{f})()", (res) ->
-      res.should.be.true
+      res.success.should.be.true
       done()
 
 describe 'EffectSystemAnalyzer', ->
@@ -68,13 +68,13 @@ describe 'EffectSystemAnalyzer', ->
   shouldFail = (done,f) ->
     a = new EffectSystemAnalyzer()
     a.run "(#{f})()", (res) ->
-      res.should.be.false
+      res.success.should.be.false
       done()
 
   shouldSucceed = (done,f) ->
     a = new EffectSystemAnalyzer()
     a.run "(#{f})()", (res) ->
-      res.should.be.true
+      res.success.should.be.true
       done()
 
   it 'should work without contracts', (done) ->
@@ -202,18 +202,27 @@ describe 'EffectSystemAnalyzer', ->
 describe 'Effect macros', ->
 
   it 'should fail with object aliases', (done) ->
-    src = '(function() {
-      var alert = function() fx[dom] { }
-      var startWorker = function (x fx[!dom]) { }
-      var obj = {f: function (i) { return i; } };
-      var box = function (x) {
-        return function() { return x; }
-      };
-      var b = box(obj);
-      startWorker(function() { b().f(); });
-      obj.f = alert;
-    })()'
+    src = '''
+          (function (__global) {
+            var alert, startWorker, f, obj, box, b, z;
+            alert = function() fx[dom] { };
+            startWorker = function (x fx[!dom]) { };
+            f = function (i) { return i; };
+            obj = {f: f };
+            box = function (x) {
+              return function() { return x; }
+            };
+            b = box(obj);
+            z = startWorker(function() {
+              var recv, z2;
+              recv = b();
+              z2 = recv.f();
+              return;
+            });
+            obj.f = alert;
+          }(this));
+          '''
     a = new EffectSystemAnalyzer()
     a.run src, (res) ->
-      res.should.be.false
+      res.success.should.be.false
       done()

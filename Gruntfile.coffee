@@ -88,6 +88,11 @@ module.exports = (grunt) ->
       html: 'index.html'
       options:
         dest: 'dist'
+        flow:
+          steps:
+            js: ['concat']
+            css: ['concat', 'cssmin']
+          post: {}
 
     copy:
       html:
@@ -129,7 +134,6 @@ module.exports = (grunt) ->
     'useminPrepare'
     'concat:generated'
     'cssmin:generated'
-    'uglify:generated'
     'copy:html'
     'usemin']
 

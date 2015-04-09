@@ -2,26 +2,28 @@ _ = require 'lodash'
 sweet = require 'sweet.js'
 sweet.loadMacro(__dirname + '/../src/fxmacros')
 
+Analyzer = require './analyzer'
 CallGraphAnalyzer = require './callgraph'
 
-class Constraint
+class EffectConstraint extends Analyzer.Constraint
+  constructor: (@infuncidx, @fxid, pos) -> super pos ; @pos = pos
+  smt: -> "(effect F#{@infuncidx} FX#{@fxid})"
 
-class EffectConstraint extends Constraint
-  constructor: (@infuncidx, @fxid) ->
-  toString: -> "(effect F#{@infuncidx} FX#{@fxid})"
-
-class ContractConstraint extends Constraint
-  constructor: (@node, @fxidx) ->
-  toString: -> "(contract #{@node} FX#{@fxidx})"
+class ContractConstraint extends Analyzer.Constraint
+  constructor: (@node, @fxidx, pos) -> super pos ; @pos = pos
+  smt: -> "(contract #{@node} FX#{@fxidx})"
 
 class EffectSystemAnalyzer extends CallGraphAnalyzer
 
+  constructor: -> @effectIdx = 0; @contractIdx = 0; super
+
   parse: (src) ->
-    @ast = sweet.compile "#{@macro}\n#{src}",
+    @ast = sweet.compile src,
       ast: true
       readableNames: true
 
-  run: (src,cb) ->
+  run: (src, cb) ->
+    @code = src
     @fxs = {}
     super src, cb
 
@@ -30,21 +32,40 @@ class EffectSystemAnalyzer extends CallGraphAnalyzer
       @fxs[fx] = 1 + _.keys(@fxs).length
     @fxs[fx]
 
-  effect: (funcidx, fx) ->
-    @constraints.push new EffectConstraint funcidx, (@fx fx)
+  regExPosFor: (re, idx) ->
+    notFound =
+      start_offset: 0
+      end_offset: 0
+    while idx >= 0 and (m = re.exec @code) != null
+      if idx-- == 0
+        a =
+          start_offset: re.lastIndex
+          end_offset: re.lastIndex + m[0].length
+        return a
+    notFound
 
-  contract: (node, fx) ->
-    @constraints.push new ContractConstraint node, (@fx fx)
+  effectPosFor: (idx) -> @regExPosFor /fx\[[^!\]]+\]/g, idx
+
+  contractPosFor: (idx) -> @regExPosFor /fx\[![^\]]+\]/g, idx
+
+  effect: (funcidx, fx, pos) ->
+    pos = @effectPosFor @effectIdx++
+    @constraints.push new EffectConstraint funcidx, (@fx fx), [pos]
+
+  contract: (node, fx, pos) ->
+    {start_offset, end_offset} = @contractPosFor @contractIdx++
+    pos = {start_offset: start_offset - 1, end_offset: end_offset - 1}
+    @constraints.push new ContractConstraint node, (@fx fx), [pos]
 
   fxRegex: /^__@fx:(.+)$/
   contractRegex: /^__@var:([^:]+):(.+)$/
 
-  visitLiteral: (x, lit) ->
+  visitLiteral: (x, lit, pos) ->
     if typeof lit is 'string' and @fxRegex.test lit
-      @effect @funcs, fx for fx in lit.match(@fxRegex)[1].split ','
+      @effect @funcs, fx, pos for fx in lit.match(@fxRegex)[1].split ','
     else if typeof lit is 'string' and @contractRegex.test lit
       [all, varname, fxs] = lit.match @contractRegex
-      @contract (@var varname), fx.substr(1) for fx in fxs.split ','
+      @contract (@var varname), fx.substr(1), pos for fx in fxs.split ','
     else
       super x, lit
 

@@ -1,11 +1,11 @@
 macro __fxstr {
     case { _ $fx }
-      => { letstx $tokenStr = [makeValue("__@fx:" + unwrapSyntax(#{$fx}), #{here})];
+      => { letstx $tokenStr = [makeValue("__@fx:" + unwrapSyntax(#{$fx}), #{$fx})];
            return #{ $tokenStr } }
 }
 macro __varfxstr {
     case { _ $var $fx }
-      => { letstx $tokenStr = [makeValue("__@var:" + unwrapSyntax(#{$var}) + ":!" + unwrapSyntax(#{$fx}), #{here})];
+      => { letstx $tokenStr = [makeValue("__@var:" + unwrapSyntax(#{$var}) + ":!" + unwrapSyntax(#{$fx}), #{$fx})];
            return #{ $tokenStr } }
 }
 

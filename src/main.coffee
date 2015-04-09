@@ -40,22 +40,25 @@ window.App =
       mode: 'javascript'
       indentUnit: 4
 
-    $('#loadButton').click(load)
+    $('#loadButton').click load
     filePicker = $('#filePicker')
     filePicker.on('change', load2)
 
-    $('#saveButton').click(save)
-
-    textarea.on 'change', ->
-      $('#source .panel').removeClass 'panel-danger'
-      $('#source .panel').removeClass 'panel-success'
-      $('#source .panel').addClass 'panel-warning'
-      $('#msg').html 'Checking...'
-      possiblyUpdate()
+    $('#saveButton').click save
+    $('#checkButton').click startUpdate
+    textarea.on 'change', startUpdate
 
     $('#vimmode').on 'change', ->
       console.log $('#vimmode').is(':checked')
       textarea.setOption 'vimMode', $('#vimmode').is(':checked')
+
+startUpdate = ->
+  $('#source .panel').removeClass 'panel-info'
+  $('#source .panel').removeClass 'panel-danger'
+  $('#source .panel').removeClass 'panel-success'
+  $('#source .panel').addClass 'panel-warning'
+  $('#msg').html 'Checking...'
+  possiblyUpdate()
 
 update = ->
   code = textarea.getValue()
@@ -69,12 +72,15 @@ analyze = ->
     if data.parseError
       $('#msg').html 'Parse error!'
       $('#source .panel').addClass 'panel-danger'
+      highlight []
     else if data.success
       $('#msg').html 'All contracts satisfied.'
       $('#source .panel').addClass 'panel-success'
+      highlight []
     else
       $('#msg').html 'Found a contract violation!'
       $('#source .panel').addClass 'panel-danger'
+      highlight data.pos
 
 load = ->
   if diskOutdated
@@ -115,3 +121,22 @@ download = (filename, text) ->
   a[0].click()
   a.remove()
   diskOutdated = false
+
+highlight = (highlights) ->
+  textarea.removeOverlay 'violation'
+  isHighlighted = (pos) ->
+    for [from,to] in highlights
+      return true if from <= pos && to > pos
+    false
+  absPos = 5
+  textarea.addOverlay
+    name: 'violation',
+    token: (stream) ->
+      absPos++ if stream.sol()
+      absPos++
+      stream.next()
+      if isHighlighted absPos
+        'violation'
+      else
+        null
+    blankLine: -> absPos++ ; null

@@ -18,57 +18,57 @@ class Visitor
     code
 
   # Id, Function
-  visitFunction: (x, func) ->
+  visitFunction: (x, func, pos) ->
   # Id
-  visitVarDeclaration: (varname) ->
+  visitVarDeclaration: (varname, pos) ->
   # Id, Literal
-  visitLiteral: (x, lit) ->
+  visitLiteral: (x, lit, pos) ->
   # Id
-  visitThis: (x) ->
+  visitThis: (x, pos) ->
   # Id, [Id]
-  visitArray: (x, arr) ->
+  visitArray: (x, arr, pos) ->
   # Id, {Id: Id }
-  visitObjectLiteral: (x, obj) ->
+  visitObjectLiteral: (x, obj, pos) ->
   # Id, Id
-  visitVariable: (x, y) ->
+  visitVariable: (x, y, pos) ->
   # Id, Id, Id
-  visitGet: (x, o, f) ->
+  visitGet: (x, o, f, pos) ->
   # Id, Id, Id
-  visitSet: (o, f, y) ->
+  visitSet: (o, f, y, pos) ->
   # Id, Id
-  visitDeleteGlobal: (x, y) ->
+  visitDeleteGlobal: (x, y, pos) ->
   # Id, Id, Id
-  visitDelete: (x, o, f) ->
+  visitDelete: (x, o, f, pos) ->
   # Id, Op, Id
-  visitUnOp: (x, op, a) ->
+  visitUnOp: (x, op, a, pos) ->
   # Id, Id, Op, Id
-  visitBinOp: (x, a, op, b) ->
+  visitBinOp: (x, a, op, b, pos) ->
   # Id, Id, [Id]
-  visitCall: (x, f, args) ->
+  visitCall: (x, f, args, pos) ->
   # Id, Id, Id, [Id]
-  visitMethodCall: (x, o, f, args) ->
+  visitMethodCall: (x, o, f, args, pos) ->
   # Id, Id, [Id]
-  visitConstructorCall: (x, f, args) ->
+  visitConstructorCall: (x, f, args, pos) ->
   # Id?
-  visitReturn: (x) ->
+  visitReturn: (x, pos) ->
   # Id
-  visitBreak: (l) ->
+  visitBreak: (l, pos) ->
   # Id
-  visitThrow: (x) ->
+  visitThrow: (x, pos) ->
   # ()
-  visitDebugger: ->
+  visitDebugger: (pos) ->
   # Id, Statement
-  visitLabel: (l,s) ->
+  visitLabel: (l,s,pos) ->
   # Id, [Statement], [Statement]
-  visitIf: (cond, consequent, alternate) ->
+  visitIf: (cond, consequent, alternate, pos) ->
   # Id, [Statement]
-  visitWhile: (cond, block) ->
+  visitWhile: (cond, block, pos) ->
   # Id, Id, [Statement]
-  visitForIn: (x, o, block) ->
+  visitForIn: (x, o, block, pos) ->
   # [Statement], Id, [Statement]
-  visitTryCatch: (block, x, catchBlock) ->
+  visitTryCatch: (block, x, catchBlock, pos) ->
   # [Statement], [Statement]
-  visitTryFinally: (block, finallyBlock) ->
+  visitTryFinally: (block, finallyBlock, pos) ->
 
   ensure: (cond, msg = 'Expected true') ->
     throw new Error msg unless !!cond
@@ -82,8 +82,8 @@ class Visitor
       @ensureType node.body[0], 'ExpressionStatement'
       @ensureType node.body[0].expression, 'CallExpression'
       @ensureType node.body[0].expression.callee, 'FunctionExpression'
-      @visitVarDeclaration '__global'
-      @visitObjectLiteral '__global', {}
+      @visitVarDeclaration '__global', []
+      @visitObjectLiteral '__global', {}, [[], {}]
       @visit node.body[0].expression.callee.body
     when 'BlockStatement'
       @visit n for n in node.body
@@ -91,47 +91,51 @@ class Visitor
       @ensureType node.test, 'Identifier'
       @ensureType node.consequent, 'BlockStatement'
       @ensureType node.alternate, 'BlockStatement'
-      @visitIf node.test.name, node.consequent.body, node.alternate.body
+      pos = [node.test.attr.pos]
+      @visitIf node.test.name, node.consequent.body, node.alternate.body, pos
     when 'LabeledStatement'
-      @visitLabel node.label.name, node.body
+      @visitLabel node.label.name, node.body, []
     when 'EmptyStatement' then # do nothing
     when 'BreakStatement'
       @ensure node.label
-      @visitBreak node.label.name
+      @visitBreak node.label.name, []
     # when "ContinueStatement" then -- desugared to break
     # when 'WithStatement' then -- not supported
     # when 'SwitchStatement' -- desugared
     when 'ReturnStatement'
-      @ensureType node.argument, 'Identifier' if node.argument
-      @visitReturn node.argument?.name
+      if node.argument
+        @ensureType node.argument, 'Identifier'
+        pos = [node.argument.attr.pos]
+      @visitReturn node.argument?.name, pos || []
     when 'ThrowStatement'
       @ensureType node.argument, 'Identifier'
-      @visitThrow node.argument.name
+      @visitThrow node.argument.name, []
     when 'TryStatement'
       if node.handler
         @nsure !node.finalizer
-        @visitTryCatch node.block, node.handler.param.name, node.handler.body
+        @visitTryCatch node.block, node.handler.param.name, node.handler.body,[]
       else
-        @visitTryFinally node.block, node.finalizer
+        @visitTryFinally node.block, node.finalizer, []
     when 'WhileStatement'
       @ensureType node.test, 'Identifier'
       @ensureType node.body, 'BlockStatement'
-      @visitWhile node.test.name, node.body.body
+      @visitWhile node.test.name, node.body.body, [node.test.attr.pos]
     #when "DoWhileStatement" then -- desugared to while
     #when "ForStatement" then -- desugared to while
     when 'ForInStatement'
       @ensureType node.left, 'Identifier'
       @ensureType node.right, 'Identifier'
       @ensureType node.body, 'BlockStatement'
-      @visitForIn node.left.name, node.right.name, node.body.body
+      pos = [node.left.attr.pos, node.right.attr.pos]
+      @visitForIn node.left.name, node.right.name, node.body.body, pos
     # when 'ForOfStatement' then -- not supported
     # when 'LetStatement' then -- not supported
     when 'DebuggerStatement'
-      @visitDebugger()
+      @visitDebugger [node.attr.pos]
     when 'VariableDeclaration'
       for decl in node.declarations
         @ensure !decl.init
-        @visitVarDeclaration decl.id.name
+        @visitVarDeclaration decl.id.name, []
     when 'ExpressionStatement'
       @ensureType node.expression, 'AssignmentExpression'
       left = node.expression.left
@@ -141,24 +145,30 @@ class Visitor
         @ensureType left.property, 'Identifier'
         @ensure left.computed
         @ensureType right, 'Identifier'
-        return @visitSet left.object.name, left.property.name, right.name
+        pos = [left.object.attr.pos, left.property.attr.pos, right.attr.pos]
+        return @visitSet left.object.name, left.property.name, right.name, pos
       @ensureType left, 'Identifier'
+      pleft = left.attr.pos
       left = left.name
       switch right.type
         when 'FunctionExpression'
-          @visitFunction left, right
+          @visitFunction left, right, [pleft]
         when 'ThisExpression'
-          @visitThis left
+          @visitThis left, [pleft, right.attr.pos]
         when 'ArrayExpression'
           @ensureType e, 'Identifier' for e in right.elements
-          @visitArray left, (e.name for e in right.elements)
+          @visitArray left,
+            (e.name for e in right.elements),
+            _.union([pleft], (e.attr.pos for e in right.elements))
         when 'ObjectExpression'
           props = {}
+          pos = {}
           for prop in right.properties
             @ensure prop.kind == 'init'
             @ensureType prop.value, 'Identifier'
             props[prop.key.name] = prop.value.name
-          @visitObjectLiteral left, props
+            pos[prop.key.name] = prop.value.attr.pos
+          @visitObjectLiteral left, props, [[pleft], pos]
         # when 'SequenceExpression' then # -- desugared
         when 'UnaryExpression'
           if right.operator == 'delete'
@@ -167,49 +177,57 @@ class Visitor
               @ensureType right.object, 'Identifier'
               @ensureType right.property, 'Identifier'
               @ensure right.computed
-              @visitDelete left, right.object.name, right.property.name
+              @visitDelete left, right.object.name, right.property.name, [pleft]
             else
               @ensureType right, 'Identifier'
-              @visitDeleteGlobal left, right
+              @visitDeleteGlobal left, right, [pleft]
           else
             @ensureType right.argument, 'Identifier'
-            @visitUnOp left, right.operator, right.argument.name
+            pos = [pleft, right.argument.attr.pos]
+            @visitUnOp left, right.operator, right.argument.name, pos
         when 'BinaryExpression'
           @ensureType right.left, 'Identifier'
           @ensureType right.right, 'Identifier'
-          @visitUnOp left, right.left.name, right.right.name
+          pos = [pleft, right.left.attr.pos, right.right.attr.pos]
+          @visitUnOp left, right.left.name, right.right.name, pos
         # when 'UpdateExpression' then # -- desugared
         # when 'LogicalExpression' then # -- desugared
         when 'CallExpression', 'NewExpression'
           @ensureType a, 'Identifier' for a in right.arguments
           args = (a.name for a in right.arguments)
+          pos = _.union [pleft], (a.attr.pos for a in right.arguments)
           callee = right.callee
           if right.type == 'CallExpression' && callee.type == 'MemberExpression'
             @ensureType callee.object, 'Identifier'
             @ensureType callee.property, 'Identifier'
             @ensure callee.computed
+            pos.unshift callee.property.attr.pos
+            pos.unshift callee.object.attr.pos
             @visitMethodCall left,
                              callee.object.name,
                              callee.property.name,
-                             args
+                             args,
+                             pos
           else
             @ensureType callee, 'Identifier'
+            pos.unshift callee.attr.pos
             if right.type == 'NewExpression'
-              @visitConstructorCall left, callee.name, args
+              @visitConstructorCall left, callee.name, args, pos
             else
-              @visitCall left, callee.name, args
+              @visitCall left, callee.name, args, pos
         when 'MemberExpression'
           @ensureType right.object, 'Identifier'
           @ensureType right.property, 'Identifier'
           @ensure right.computed
-          @visitGet left, right.object.name, right.property.name
+          pos = [pleft, right.object.attr.pos, right.property.attr.pos]
+          @visitGet left, right.object.name, right.property.name, pos
         # when 'YieldExpression' then -- not supported
         # when 'ComprehensionExpression' then -- not supported
         # when 'GeneratorExpression' then -- not supported
         when 'Identifier'
-          @visitVariable left, right.name
+          @visitVariable left, right.name, [pleft, right.attr.pos]
         when 'Literal'
-          @visitLiteral left, right.value
+          @visitLiteral left, right.value, [pleft, right.attr.pos]
         else
           throw new Error 'Unknown AST node in expression'
     else

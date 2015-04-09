@@ -1,5 +1,5 @@
 (set-logic UF)
-(set-option :produce-models true)
+(set-option :produce-unsat-cores true)
 
 (declare-datatypes () ((Func (F0) <% for(var i = 1; i <= funcs; i++) { %> (F<%=i%>) <% } %>)))
 (declare-datatypes () ((Obj <% for(var i = 1; i <= objs; i++) { %> (O<%=i%>) <% } %>)))
@@ -114,4 +114,4 @@
 <% }) %>
 
 (check-sat)
-(get-model)
+(get-unsat-core)
