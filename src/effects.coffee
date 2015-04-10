@@ -39,8 +39,8 @@ class EffectSystemAnalyzer extends CallGraphAnalyzer
     while idx >= 0 and (m = re.exec @code) != null
       if idx-- == 0
         a =
-          start_offset: re.lastIndex + 3
-          end_offset: re.lastIndex + m[0].length - 4
+          start_offset: re.lastIndex - 4
+          end_offset: re.lastIndex + m[0].length - 10
         return a
     notFound
 
@@ -53,8 +53,7 @@ class EffectSystemAnalyzer extends CallGraphAnalyzer
     @constraints.push new EffectConstraint funcidx, (@fx fx), [pos]
 
   contract: (node, fx, pos) ->
-    {start_offset, end_offset} = @contractPosFor @contractIdx++
-    pos = {start_offset: start_offset - 1, end_offset: end_offset - 1}
+    pos = @contractPosFor @contractIdx++
     @constraints.push new ContractConstraint node, (@fx fx), [pos]
 
   fxRegex: /^__@fx:(.+)$/

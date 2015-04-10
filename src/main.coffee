@@ -132,11 +132,11 @@ highlight = (highlights) ->
   textarea.addOverlay
     name: 'violation',
     token: (stream) ->
-      absPos++ if stream.sol()
+      absPos += stream.pos if stream.sol()
       absPos++
       stream.next()
       if isHighlighted absPos
         'violation'
       else
         null
-    blankLine: -> absPos++ ; null
+    blankLine: (stream) -> absPos += stream.pos ; null

@@ -36,7 +36,9 @@ class Constraint
     if @pos.length == 0
       @smt()
     else
-      pos = ("#{p.start_offset}-#{p.end_offset}" for p in @pos)
+      pos = for {start_offset, end_offset} in @pos
+        {start_offset: start_offset + 7, end_offset: end_offset + 8}
+      pos = ("#{p.start_offset}-#{p.end_offset}" for p in pos)
       "(! #{@smt()} :named C_#{@id}_#{pos.join '_'})"
 
 class ObjectConstraint extends Constraint
@@ -308,9 +310,8 @@ class Analyzer extends Visitor
             .map (p) -> p.split('_').slice(2)
           pos = [].concat.apply [], pos
           pos = (p.split('-').map((pp) -> +pp) for p in pos)
-          pos = ([from, Math.max(from + 4, to)] for [from,to] in pos)
+          pos = ([from, Math.max(from + 3, to)] for [from,to] in pos)
           cb {success: false, pos: pos}
-      fs.writeFileSync './tmp.smt', smt
       child.stdin.end smt
 
 Analyzer.Constraint = Constraint
