@@ -24,7 +24,7 @@ code = '''
        startWorker(function() {
            b().f();
        });
-       obj.f = alert;  // this assignment causes a contract violation
+       obj.f = alert;  // this assignment might cause a crash
        '''
 
 window.App =
@@ -74,11 +74,13 @@ analyze = ->
       $('#source .panel').addClass 'panel-danger'
       highlight []
     else if data.success
-      $('#msg').html 'All contracts satisfied.'
+      $('#msg').html 'Effect checking complete. No errors found.'
       $('#source .panel').addClass 'panel-success'
       highlight []
     else
-      $('#msg').html 'Found a contract violation!'
+      fxerr = code.substring data.pos[0][0], data.pos[0][1]
+      fx = fxerr.match(/fx\[!?([^\]]+)\]/)[1]
+      $('#msg').html "Error: '#{fx}' effect not allowed here."
       $('#source .panel').addClass 'panel-danger'
       highlight data.pos
 
@@ -122,21 +124,58 @@ download = (filename, text) ->
   a.remove()
   diskOutdated = false
 
+convPos = (pos) ->
+  offset = 0
+  for s,i in code.split /\n/
+    if offset + s.length >= pos
+      return { line: i + 1, column: pos - offset }
+    offset += s.length + 1
+  line: 0
+  column: 0
+
+convRange = (range) ->
+  start: convPos range[0]
+  end: convPos range[1]
+
 highlight = (highlights) ->
   textarea.removeOverlay 'violation'
-  isHighlighted = (pos) ->
-    for [from,to] in highlights
-      return true if from <= pos && to > pos
-    false
-  absPos = 5
+  highlights = highlights.map convRange
+  highlights.sort (a, b) ->
+    return -1 if a.start.line < b.start.line
+    return 1 if a.start.line > b.start.line
+    a.start.column - b.start.column
+  line = 0
+  currentIdx = 0
   textarea.addOverlay
-    name: 'violation',
+    name: 'violation'
     token: (stream) ->
-      absPos += stream.pos if stream.sol()
-      absPos++
-      stream.next()
-      if isHighlighted absPos
-        'violation'
-      else
-        null
-    blankLine: (stream) -> absPos += stream.pos ; null
+      line++ if stream.sol()
+      if currentIdx >= highlights.length # no more highlights
+        stream.skipToEnd()
+        return null
+
+      current = highlights[currentIdx]
+      if current.start.line > line # no highlights on this line
+        stream.skipToEnd()
+        return null
+
+      if current.start.column > stream.pos # skip to highlight
+        stream.pos = current.start.column
+        return null
+
+      if current.start.column < stream.pos # omit past highlight
+        currentIdx++
+        return null
+
+      # highlight current token
+      if current.end.line == line && stream.pos < current.end.column
+          stream.pos = current.end.column
+          currentIdx++
+      else if current.end.line <= line # omit empty highlight
+        currentIdx++
+      else # multi-line token -> move to next line
+        current.start.column = 0
+        stream.skipToEnd()
+      'violation'
+
+    blankLine: -> line++ ; null

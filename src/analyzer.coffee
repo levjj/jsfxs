@@ -37,7 +37,7 @@ class Constraint
       @smt()
     else
       pos = for {start_offset, end_offset} in @pos
-        {start_offset: start_offset + 7, end_offset: end_offset + 8}
+        {start_offset: start_offset, end_offset: end_offset}
       pos = ("#{p.start_offset}-#{p.end_offset}" for p in pos)
       "(! #{@smt()} :named C_#{@id}_#{pos.join '_'})"
 

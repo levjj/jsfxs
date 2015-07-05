@@ -39,8 +39,8 @@ class EffectSystemAnalyzer extends CallGraphAnalyzer
     while idx >= 0 and (m = re.exec @code) != null
       if idx-- == 0
         a =
-          start_offset: re.lastIndex - 4
-          end_offset: re.lastIndex + m[0].length - 10
+          start_offset: re.lastIndex - m[0].length
+          end_offset: re.lastIndex
         return a
     notFound
 

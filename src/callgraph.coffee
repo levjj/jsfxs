@@ -3,11 +3,11 @@ _ = require 'lodash'
 Analyzer = require './analyzer'
 
 class FunctionCallConstraint extends Analyzer.Constraint
-  constructor: (@infuncidx, @func, pos) -> super pos ; @pos = pos
+  constructor: (@infuncidx, @func, pos) -> super pos
   smt: -> "(call F#{@infuncidx} #{@func})"
 
 class MethodCallConstraint extends Analyzer.Constraint
-  constructor: (@infuncidx, @obj, @propidx, pos) -> super pos ; @pos = pos
+  constructor: (@infuncidx, @obj, @propidx, pos) -> super pos
   smt: -> "(mcall F#{@infuncidx} #{@obj} S#{@propidx})"
 
 class CallGraphAnalyzer extends Analyzer
