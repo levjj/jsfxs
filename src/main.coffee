@@ -169,8 +169,8 @@ highlight = (highlights) ->
 
       # highlight current token
       if current.end.line == line && stream.pos < current.end.column
-          stream.pos = current.end.column
-          currentIdx++
+        stream.pos = current.end.column
+        currentIdx++
       else if current.end.line <= line # omit empty highlight
         currentIdx++
       else # multi-line token -> move to next line
